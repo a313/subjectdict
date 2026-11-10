@@ -1,0 +1,28 @@
+# Giữ project Supabase gói Free không bị tạm dừng (Supabase pause sau ~7 ngày không có truy cập).
+# Cần 2 repository secrets: SUPABASE_URL, SUPABASE_ANON_KEY (Settings → Secrets and variables → Actions).
+name: Supabase keepalive
+
+on:
+  schedule:
+    - cron: "17 3 */3 * *"   # 03:17 UTC, 3 ngày một lần
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Chưa cấu hình secrets, bỏ qua."; exit 0
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/rest/v1/subjects?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+          echo "HTTP $code"
+          test "$code" = "200"
